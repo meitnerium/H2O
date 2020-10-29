@@ -51,7 +51,8 @@ petitr=numpy.abs(H2[1]-H1[1])
 print("grandR="+str(grandR))
 print("petitr="+str(petitr))
 
-mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O'+str(O[0])+' '+str(O[1])+' '+str(O[2])+'; H '+str(H2[0])+''+str(H2[1])+' '+str(H2[2])
+#mol.atom = 'H 0.000000  -0.748791  -0.359532; O 0.000000 -0.000000   0.219063; H 0.000000   0.748791  -0.359532'
+mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2])+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
 mol.unit = 'Bohr'
 mol.build()
 mf = scf.RHF(mol)
@@ -64,7 +65,7 @@ for idR in range(83):
         print(ndR)
         dOz=ndR*dR
         print(dOz)
-        mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O'+str(O[0])+' '+str(O[1])+' '+str(O[2]+dOz)+'; H '+str(H2[0])+''+str(H2[1])+' '+str(H2[2])
+        mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2]+dOz)+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
         mol.build()
         mf = scf.RHF(mol)
         mf.kernel()
