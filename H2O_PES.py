@@ -1,4 +1,4 @@
-from pyscf import gto,scf, ao2mo, cc
+from pyscf import gto,scf, ao2mo, cc, mcscf
 from pyscf.geomopt.berny_solver import optimize
 import numpy
 import matplotlib.pyplot as plt
@@ -64,6 +64,7 @@ X=[]
 dX=[]
 ESCF=[]
 ERCCSD=[]
+EMCSCF=[]
 for idR in range(62):
         ndR=idR-10
         print(ndR)
@@ -77,9 +78,12 @@ for idR in range(62):
 #        mycc.kernel()
 #        e,v = mycc.ipccsd(nroots=3)
 #        f.write(str(dOz)+" "+str(O[2]+dOz-H1[2])+" "+str(mf.energy_tot())+" "+str(mycc.energy())+'\n')
+        mc = mcscf.CASCI(mf, 8, 8)
+        print('E(CASCI) = %.9g' % mc.casci()[0])
         X.append(O[2]+dOz)
         dX.append(dOz)
         ESCF.append(mf.energy_tot())
+        EMCSCF.append(mc.casci()[0])
 #        print("mycc.energy()")
 #        print(mycc.energy())
 #        ERCCSD.append(mf.energy_tot()-mycc.energy())
@@ -96,6 +100,7 @@ dR=0.1
 X=[]
 dX=[]
 ESCFion=[]
+EMCSCFion=[]
 for idR in range(62):
         ndR=idR-10
         print(ndR)
@@ -114,11 +119,19 @@ for idR in range(62):
         X.append(O[2]+dOz)
         dX.append(dOz)
         ESCFion.append(mf.energy_tot())
+        mc = mcscf.CASCI(mf, 8, 7)
+        EMCSCFion.append(mc.casci()[0])
 #        print("mycc.energy()")
 #        print(mycc.energy())
 #        ERCCSD.append(mf.energy_tot()-mycc.energy())
 
-plt.plot(dX,ESCF)
-plt.plot(dX,ESCFion)
+plt.plot(dX,ESCF,label=r'SCF $H_2O$')
+plt.plot(dX,ESCFion,label=r'SCF $H_2O^+$')
+plt.plot(dX,EMCSCF,label=r'MCSCF $H_2O$')
+plt.plot(dX,EMCSCFion,label=r'MCSCF $H_2O^+$')
+plt.xlabel('R (bohr)')
+plt.ylabel('Energy (Hartree)')
 #plt.plot(dX,ERCCSD)
+plt.legend()
+plt.savefig('PES_H2O')
 plt.show()
