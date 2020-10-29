@@ -64,7 +64,7 @@ X=[]
 dX=[]
 ESCF=[]
 ERCCSD=[]
-for idR in range(83):
+for idR in range(62):
         ndR=idR-10
         print(ndR)
         dOz=ndR*dR
@@ -73,16 +73,52 @@ for idR in range(83):
         mol.build()
         mf = scf.RHF(mol)
         mf.kernel()
-        mycc = cc.RCCSD(mf)
-        mycc.kernel()
-        e,v = mycc.ipccsd(nroots=3)
-        f.write(str(dOz)+" "+str(O[2]+dOz-H1[2])+""+str(mf.energy_tot())+" "+str(e)+'\n')
+#        mycc = cc.CCSD(mf)
+#        mycc.kernel()
+#        e,v = mycc.ipccsd(nroots=3)
+#        f.write(str(dOz)+" "+str(O[2]+dOz-H1[2])+" "+str(mf.energy_tot())+" "+str(mycc.energy())+'\n')
         X.append(O[2]+dOz)
         dX.append(dOz)
         ESCF.append(mf.energy_tot())
-        ERCCSD.append(e)
+#        print("mycc.energy()")
+#        print(mycc.energy())
+#        ERCCSD.append(mf.energy_tot()-mycc.energy())
+
+
+
+mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2])+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
+mol.unit = 'Bohr'
+mol.build()
+mf = scf.RHF(mol)
+mf.kernel()
+
+dR=0.1
+X=[]
+dX=[]
+ESCFion=[]
+for idR in range(62):
+        ndR=idR-10
+        print(ndR)
+        dOz=ndR*dR
+        print(dOz)
+        mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2]+dOz)+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
+        mol.charge = 1
+        mol.spin=3
+        mol.build()
+        mf = scf.UHF(mol)
+        mf.kernel()
+#        mycc = cc.CCSD(mf)
+#        mycc.kernel()
+#        e,v = mycc.ipccsd(nroots=3)
+#        f.write(str(dOz)+" "+str(O[2]+dOz-H1[2])+" "+str(mf.energy_tot())+" "+str(mycc.energy())+'\n')
+        X.append(O[2]+dOz)
+        dX.append(dOz)
+        ESCFion.append(mf.energy_tot())
+#        print("mycc.energy()")
+#        print(mycc.energy())
+#        ERCCSD.append(mf.energy_tot()-mycc.energy())
 
 plt.plot(dX,ESCF)
-plt.plot(dX,ERCCSD)
+plt.plot(dX,ESCFion)
+#plt.plot(dX,ERCCSD)
 plt.show()
-
