@@ -1,24 +1,55 @@
 from pyscf import gto,scf, ao2mo, cc, mcscf
 from pyscf.geomopt.berny_solver import optimize
 import numpy
-import matplotlib
-matplotlib.use('Agg')
+#import matplotlib
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import configparser
 
-mol = gto.M(atom='H 0.000000  -0.748791  -0.359532; O 0.000000 -0.000000   0.219063; H 0.000000   0.748791  -0.359532',basis='ccpvdz')
-#
-#Cartesian coordinates (Angstrom)
-# Atom        New coordinates             dX        dY        dZ
-#   H   0.000000  -0.748791  -0.359532    0.000000  0.000296  0.000040
-#   O   0.000000  -0.000000   0.219063    0.000000 -0.000000 -0.000080
-#   H   0.000000   0.748791  -0.359532    0.000000 -0.000296  0.000040
+def getR(mol):
+	# center of mass of atom 2 and 3
+	COMA23 = mol.atom_coords()[1]*mol.atom_mass_list()[1]-mol.atom_coords()[2]*mol.atom_mass_list()[2]
+	R=numpy.linalg.norm(mol.atom_coords()[0]-COMA23)
+	return R
 
 
-#mol.charge = 1
+def getpetitr(mol):
+	R=numpy.linalg.norm(mol.atom_coords()[2]-mol.atom_coords()[1])
+	return R
+
+
+config = configparser.ConfigParser()
+config.read('config.ini')
+print(config['DEFAULT']['opt'])
+
+mol = gto.Mole()
+print(config['DEFAULT']['atom'])
+mol.atom = config['DEFAULT']['atom']
+mol.basis = config['DEFAULT']['basis']
+mol.build()
+
 mf = scf.RHF(mol)
 #mf.kernel()
-mol_eq = optimize(mf)
-mol_eq.kernel()
+if config['DEFAULT']['opt']:
+	mol_eq = optimize(mf)
+	mol_eq.kernel()
+	print(mol_eq.atom_mass_list())
+	# center of mass of atom 2 and 3
+	COMA23 = mol_eq.atom_coords()[1]*mol_eq.atom_mass_list()[1]-mol_eq.atom_coords()[2]*mol_eq.atom_mass_list()[2]
+	R=numpy.linalg.norm(mol_eq.atom_coords()[0]-COMA23)
+	print("R = " + str(R))
+	R = getR(mol)
+	Req = getR(mol_eq)
+	print("R = " + str(R))
+	print("R_eq = " + str(Req))
+	petitr = getpetitr(mol)
+	petitreq = getpetitr(mol_eq)
+	print("r = " + str(petitr))
+	print("r_eq = " + str(petitreq))
+	mol = mol_eq
+
+
+print(mol_eq)
 
 #mycc = cc.RCCSD(mf)
 #mycc.kernel()
@@ -26,120 +57,88 @@ mol_eq.kernel()
 #print(e)
 #print(v)
 
+nval=config['GRID']['nval'].split(',')
+minmax=config['GRID']['minmax'].split(',')
+Rvec=numpy.linspace(numpy.float(minmax[0]),numpy.float(minmax[1]),numpy.int(nval[0]))
+petitrvec=numpy.linspace(numpy.float(minmax[2]),numpy.float(minmax[3]),numpy.int(nval[1]))
+print(minmax[0])
 
-print(mol.atom_coords())
-H1=mol_eq.atom_coords()[0]
-O=mol_eq.atom_coords()[1]
-H2=mol_eq.atom_coords()[2]
-r1 = mol_eq.atom_coords()[1] - mol_eq.atom_coords()[0]
-nr1 = numpy.linalg.norm(r1)
-print(nr1)
-r2 = mol_eq.atom_coords()[1] - mol_eq.atom_coords()[2]
-nr2 = numpy.linalg.norm(r2)
-print(nr2)
-print(H1[0])
-print(H1[1])
-print(H1[2])
+print(len(Rvec))
+print(len(petitrvec))
+ESCF=numpy.zeros([len(Rvec),len(petitrvec)])
+nr=0
+for grandr in Rvec:
+	npetitr=0
+	for petitr in petitrvec:
+		A1Z = grandr*mol_eq.atom_mass_list()[0]/(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])
+		A23Z = grandr*(mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])/(2*(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2]))
+		A23Y = petitr/2
+		mol.atom = 'O 0.0 0.0 '+str(A1Z)+' ; H 0.0 -'+str(A23Y)+' '+str(-A23Z)+' ; H 0.0 '+str(A23Y)+' '+str(-A23Z)
+		mol.unit = 'Bohr'
+		mol.build()
+		mf = scf.RHF(mol)
+		mf.kernel()
+		ESCF[nr,npetitr] = mf.energy_tot() 
+		npetitr = npetitr +1
+	plt.plot(petitrvec,ESCF[nr,:])
+	plt.show()
+	#plt.close()
+	nr = nr + 1
 
-print(O[0])
-print(O[1])
-print(O[2])
-
-print(H2[0])
-print(H2[1])
-print(H2[2])
-
-grandR=O[2]-(H1[2])
-petitr=numpy.abs(H2[1]-H1[1])
-print("grandR="+str(grandR))
-print("petitr="+str(petitr))
-
-mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2])+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
-mol.unit = 'Bohr'
-mol.build()
-mf = scf.RHF(mol)
-mf.kernel()
-
-dR=0.1
-dpetitr=0.1
-f = open('data_pes.dat','w')
-X=[]
-dX=[]
-ESCF=[]
-ERCCSD=[]
-EMCSCF=[]
-npetitr=13
-for idpetitr in range(npetitr):
-  ndpetitr=-numpy.floor(npetitr/2)+idpetitr 
-  petitr=ndpetitr*dpetitr
-  for idR in range(62):
-        ndR=idR-10
-        print(ndR)
-        dOz=ndR*dR
-        print(dOz)
-        mol.atom = 'H '+str(H1[0])+' '+str(H1[1]-petitr/2)+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2]+dOz)+'; H '+str(H2[0])+' '+str(H2[1]+petitr/2)+' '+str(H2[2])
-        mol.build()
-        mf = scf.RHF(mol)
-        mf.kernel()
-#        mycc = cc.CCSD(mf)
-#        mycc.kernel()
-#        e,v = mycc.ipccsd(nroots=3)
 #        f.write(str(dOz)+" "+str(O[2]+dOz-H1[2])+" "+str(mf.energy_tot())+" "+str(mycc.energy())+'\n')
-        mc = mcscf.CASCI(mf, 8, 8)
-        print('E(CASCI) = %.9g' % mc.casci()[0])
-        X.append(O[2]+dOz)
-        dX.append(dOz)
-        ESCF.append(mf.energy_tot())
-        EMCSCF.append(mc.casci()[0])
+#        mc = mcscf.CASCI(mf, 8, 8)
+        #print('E(CASCI) = %.9g' % mc.casci()[0])
+#        ESCF.append(mf.energy_tot())
+#        EMCSCF.append(mc.casci()[0])
 #        print("mycc.energy()")
 #        print(mycc.energy())
 #        ERCCSD.append(mf.energy_tot()-mycc.energy())
 
   #fig = plt.figure()
-  plt.plot(X,ESCF,label='SCF, r='+str((H2[1]+petitr/2)-(H1[1]-petitr/2)))
-  plt.plot(X,EMCSCF,label='MCSCF, r='+str((H2[1]+petitr/2)-(H1[1]-petitr/2)))
-  plt.legend()
-  plt.savefig('PES_H2O_r_'+str(((H2[1]+petitr/2)-(H1[1]-petitr/2)))+".png")
-  plt.close()
-  X=[]
-  ESCF=[]
-  EMCSCF=[]
+#  plt.plot(X,ESCF,label='SCF, r='+str((H2[1]+petitr/2)-(H1[1]-petitr/2)))
+#  plt.plot(X,EMCSCF,label='MCSCF, r='+str((H2[1]+petitr/2)-(H1[1]-petitr/2)))
+#  plt.legend()
+#  plt.savefig('PES_H2O_r_'+str(((H2[1]+petitr/2)-(H1[1]-petitr/2)))+".png")
+#  plt.close()
+#  X=[]
+#  ESCF=[]
+#  EMCSCF=[]
 
-plt.legend()
-plt.savefig('PES_H2O')
+#plt.legend()
+#plt.savefig('PES_H2O')
 #plt.show()
 
-mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2])+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
-mol.unit = 'Bohr'
-mol.build()
-mf = scf.RHF(mol)
-mf.kernel()
+#mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2])+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
+#mol.unit = 'Bohr'
+#mol.build()
+#mf = scf.RHF(mol)
+#mf.kernel()
 
-dR=0.1
-X=[]
-dX=[]
-ESCFion=[]
-EMCSCFion=[]
-for idR in range(62):
-        ndR=idR-10
-        print(ndR)
-        dOz=ndR*dR
-        print(dOz)
-        mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2]+dOz)+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
-        mol.charge = 1
-        mol.spin=3
-        mol.build()
-        mf = scf.UHF(mol)
-        mf.kernel()
-#        mycc = cc.CCSD(mf)
+#dR=0.1
+#X=[]
+#dX=[]
+#ESCFion=[]
+#EMCSCFion=[]
+#for idR in range(62):
+#        ndR=idR-10
+#        print(ndR)
+#        dOz=ndR*dR
+#        print(dOz)
+#        mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2]+dOz)+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
+#        mol.charge = 1
+#        mol.spin=3
+#        mol.build()
+#        mf = scf.UHF(mol)
+#        mf.kernel()
+##        mycc = cc.CCSD(mf)
 #        mycc.kernel()
 #        e,v = mycc.ipccsd(nroots=3)
 #        f.write(str(dOz)+" "+str(O[2]+dOz-H1[2])+" "+str(mf.energy_tot())+" "+str(mycc.energy())+'\n')
-        X.append(O[2]+dOz)
-        dX.append(dOz)
-        ESCFion.append(mf.energy_tot())
-        mc = mcscf.CASCI(mf, 8, 7)
-        EMCSCFion.append(mc.casci()[0])
+#        X.append(O[2]+dOz)
+#        dX.append(dOz)
+#        ESCFion.append(mf.energy_tot())
+#        mc = mcscf.CASCI(mf, 8, 7)
+#        EMCSCFion.append(mc.casci()[0])
 #        print("mycc.energy()")
 #        print(mycc.energy())
 #        ERCCSD.append(mf.energy_tot()-mycc.energy())
@@ -154,3 +153,5 @@ for idR in range(62):
 #plt.legend()
 #plt.savefig('PES_H2O')
 #plt.show()
+
+numpy.save('SCFPES', ESCF)
