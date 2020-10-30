@@ -1,6 +1,8 @@
 from pyscf import gto,scf, ao2mo, cc, mcscf
 from pyscf.geomopt.berny_solver import optimize
 import numpy
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 mol = gto.M(atom='H 0.000000  -0.748791  -0.359532; O 0.000000 -0.000000   0.219063; H 0.000000   0.748791  -0.359532',basis='ccpvdz')
@@ -26,13 +28,13 @@ mol_eq.kernel()
 
 
 print(mol.atom_coords())
-H1=mol.atom_coords()[0]
-O=mol.atom_coords()[1]
-H2=mol.atom_coords()[2]
-r1 = mol.atom_coords()[1] - mol.atom_coords()[0]
+H1=mol_eq.atom_coords()[0]
+O=mol_eq.atom_coords()[1]
+H2=mol_eq.atom_coords()[2]
+r1 = mol_eq.atom_coords()[1] - mol_eq.atom_coords()[0]
 nr1 = numpy.linalg.norm(r1)
 print(nr1)
-r2 = mol.atom_coords()[1] - mol.atom_coords()[2]
+r2 = mol_eq.atom_coords()[1] - mol_eq.atom_coords()[2]
 nr2 = numpy.linalg.norm(r2)
 print(nr2)
 print(H1[0])
@@ -59,18 +61,23 @@ mf = scf.RHF(mol)
 mf.kernel()
 
 dR=0.1
+dpetitr=0.1
 f = open('data_pes.dat','w')
 X=[]
 dX=[]
 ESCF=[]
 ERCCSD=[]
 EMCSCF=[]
-for idR in range(62):
+npetitr=13
+for idpetitr in range(npetitr):
+  ndpetitr=-numpy.floor(npetitr/2)+idpetitr 
+  petitr=ndpetitr*dpetitr
+  for idR in range(62):
         ndR=idR-10
         print(ndR)
         dOz=ndR*dR
         print(dOz)
-        mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2]+dOz)+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
+        mol.atom = 'H '+str(H1[0])+' '+str(H1[1]-petitr/2)+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2]+dOz)+'; H '+str(H2[0])+' '+str(H2[1]+petitr/2)+' '+str(H2[2])
         mol.build()
         mf = scf.RHF(mol)
         mf.kernel()
@@ -88,7 +95,19 @@ for idR in range(62):
 #        print(mycc.energy())
 #        ERCCSD.append(mf.energy_tot()-mycc.energy())
 
+  #fig = plt.figure()
+  plt.plot(X,ESCF,label='SCF, r='+str((H2[1]+petitr/2)-(H1[1]-petitr/2)))
+  plt.plot(X,EMCSCF,label='MCSCF, r='+str((H2[1]+petitr/2)-(H1[1]-petitr/2)))
+  plt.legend()
+  plt.savefig('PES_H2O_r_'+str(((H2[1]+petitr/2)-(H1[1]-petitr/2)))+".png")
+  plt.close()
+  X=[]
+  ESCF=[]
+  EMCSCF=[]
 
+plt.legend()
+plt.savefig('PES_H2O')
+#plt.show()
 
 mol.atom = 'H '+str(H1[0])+' '+str(H1[1])+' '+str(H1[2])+'; O '+str(O[0])+' '+str(O[1])+' '+str(O[2])+'; H '+str(H2[0])+' '+str(H2[1])+' '+str(H2[2])
 mol.unit = 'Bohr'
@@ -125,13 +144,13 @@ for idR in range(62):
 #        print(mycc.energy())
 #        ERCCSD.append(mf.energy_tot()-mycc.energy())
 
-plt.plot(dX,ESCF,label=r'SCF $H_2O$')
-plt.plot(dX,ESCFion,label=r'SCF $H_2O^+$')
-plt.plot(dX,EMCSCF,label=r'MCSCF $H_2O$')
-plt.plot(dX,EMCSCFion,label=r'MCSCF $H_2O^+$')
-plt.xlabel('R (bohr)')
-plt.ylabel('Energy (Hartree)')
+#plt.plot(dX,ESCF,label=r'SCF $H_2O$')
+#plt.plot(dX,ESCFion,label=r'SCF $H_2O^+$')
+#plt.plot(dX,EMCSCF,label=r'MCSCF $H_2O$')
+#plt.plot(dX,EMCSCFion,label=r'MCSCF $H_2O^+$')
+#plt.xlabel('R (bohr)')
+#plt.ylabel('Energy (Hartree)')
 #plt.plot(dX,ERCCSD)
-plt.legend()
-plt.savefig('PES_H2O')
-plt.show()
+#plt.legend()
+#plt.savefig('PES_H2O')
+#plt.show()
