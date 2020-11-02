@@ -70,12 +70,13 @@ nr=0
 for grandr in Rvec:
 	npetitr=0
 	for petitr in petitrvec:
-		A1Z = grandr*mol_eq.atom_mass_list()[0]/(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])
-		A23Z = grandr*(mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])/(2*(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2]))
-		A23Y = petitr/2
-		mol.atom = 'O 0.0 0.0 '+str(A1Z)+' ; H 0.0 -'+str(A23Y)+' '+str(-A23Z)+' ; H 0.0 '+str(A23Y)+' '+str(-A23Z)
-		mol.unit = 'Bohr'
-		mol.build()
+      A1Z = grandr*mol_eq.atom_mass_list()[0]/(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])
+      A23Z = grandr*(mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])/(2*(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2]))
+      A23Y = petitr/2
+      mol.atom = 'O 0.0 0.0 '+str(A1Z)+' ; H 0.0 -'+str(A23Y)+' '+str(-A23Z)+' ; H 0.0 '+str(A23Y)+' '+str(-A23Z)
+      mol.unit = 'Bohr'
+      mol.chk="CHK/"+str(nr)+"_"+str(npetitr)+".chk"
+	   mol.build()
 		mf = scf.RHF(mol)
 		mf.kernel()
 		ESCF[nr,npetitr] = mf.energy_tot() 
