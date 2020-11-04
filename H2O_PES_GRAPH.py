@@ -67,4 +67,35 @@ surf = ax.plot_surface(petitr,grandr,ESCF, cmap=cm.coolwarm,
 plt.savefig('test.png')
 plt.close()
 plt.plot(Rvec,SCFPES[:,5])
+plt.close()
+def creategrandrfig():
+ for i in range(len(SCFPES[0,:])):
+   plt.plot(Rvec,SCFPES[:,i])
+   vec = numpy.array(SCFPES[:,i], dtype=float)
+   minval=numpy.min(vec)
+   print(i)
+   maxval=SCFPES[-1,i]
+   print(minval)
+   print(maxval)
+   plt.axis([Rvec[0],Rvec[-1],minval-(0.1*(maxval-minval)),maxval+0.25*(maxval-minval)])
+   plt.savefig("grandr_"+str(i)+".png")
+   plt.close()
+
+def createpetitrfig():
+ for i in range(len(SCFPES[:,0])):
+   plt.plot(petitrvec,SCFPES[i,:])
+   vec = numpy.array(SCFPES[i,:], dtype=float)
+   minval=numpy.min(vec)
+   maxval=SCFPES[i,-1]
+   plt.axis([Rvec[0],Rvec[-1],minval-(0.1*(maxval-minval)),maxval+0.25*(maxval-minval)])
+   plt.savefig("petitr_"+str(i)+".png")
+   plt.close()
+
+createpetitrfig()
+
 plt.savefig('test2.png')
+plt.close()
+leveltot = plt.MaxNLocator(nbins=25).tick_values(ESCF.min(), ESCF.max())
+plt.contourf(petitrmesh,RVECmesh,ESCF,levels=leveltot)
+plt.savefig('test3.png')
+plt.close()

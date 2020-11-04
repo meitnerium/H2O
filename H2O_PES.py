@@ -1,28 +1,31 @@
 from pyscf import gto,scf, ao2mo, cc, mcscf
 from pyscf.geomopt.berny_solver import optimize
 import numpy
-#import matplotlib
-#matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import configparser
 
+import configparser
 def getR(mol):
-	# center of mass of atom 2 and 3
-	COMA23 = mol.atom_coords()[1]*mol.atom_mass_list()[1]-mol.atom_coords()[2]*mol.atom_mass_list()[2]
-	R=numpy.linalg.norm(mol.atom_coords()[0]-COMA23)
-	return R
+        # center of mass of atom 2 and 3
+        COMA23 = mol.atom_coords()[1]*mol.atom_mass_list()[1]-mol.atom_coords()[2]*mol.atom_mass_list()[2]
+        R=numpy.linalg.norm(mol.atom_coords()[0]-COMA23)
+        return R
 
 
 def getpetitr(mol):
-	R=numpy.linalg.norm(mol.atom_coords()[2]-mol.atom_coords()[1])
-	return R
+        R=numpy.linalg.norm(mol.atom_coords()[2]-mol.atom_coords()[1])
+        return R
 
 
 config = configparser.ConfigParser()
 config.read('config.ini')
 print(config['DEFAULT']['opt'])
+if config['DEFAULT']['agg']:
+   import matplotlib
+   matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 
 mol = gto.Mole()
+mol.verbose=int(config['DEFAULT']['verbose'])
 print(config['DEFAULT']['atom'])
 mol.atom = config['DEFAULT']['atom']
 mol.basis = config['DEFAULT']['basis']
@@ -31,22 +34,22 @@ mol.build()
 mf = scf.RHF(mol)
 #mf.kernel()
 if config['DEFAULT']['opt']:
-	mol_eq = optimize(mf)
-	mol_eq.kernel()
-	print(mol_eq.atom_mass_list())
-	# center of mass of atom 2 and 3
-	COMA23 = mol_eq.atom_coords()[1]*mol_eq.atom_mass_list()[1]-mol_eq.atom_coords()[2]*mol_eq.atom_mass_list()[2]
-	R=numpy.linalg.norm(mol_eq.atom_coords()[0]-COMA23)
-	print("R = " + str(R))
-	R = getR(mol)
-	Req = getR(mol_eq)
-	print("R = " + str(R))
-	print("R_eq = " + str(Req))
-	petitr = getpetitr(mol)
-	petitreq = getpetitr(mol_eq)
-	print("r = " + str(petitr))
-	print("r_eq = " + str(petitreq))
-	mol = mol_eq
+        mol_eq = optimize(mf)
+        mol_eq.kernel()
+        print(mol_eq.atom_mass_list())
+        # center of mass of atom 2 and 3
+        COMA23 = mol_eq.atom_coords()[1]*mol_eq.atom_mass_list()[1]-mol_eq.atom_coords()[2]*mol_eq.atom_mass_list()[2]
+        R=numpy.linalg.norm(mol_eq.atom_coords()[0]-COMA23)
+        print("R = " + str(R))
+        R = getR(mol)
+        Req = getR(mol_eq)
+        print("R = " + str(R))
+        print("R_eq = " + str(Req))
+        petitr = getpetitr(mol)
+        petitreq = getpetitr(mol_eq)
+        print("r = " + str(petitr))
+        print("r_eq = " + str(petitreq))
+        mol = mol_eq
 
 
 print(mol_eq)
@@ -68,23 +71,39 @@ print(len(petitrvec))
 ESCF=numpy.zeros([len(Rvec),len(petitrvec)])
 nr=0
 for grandr in Rvec:
-	npetitr=0
-	for petitr in petitrvec:
-      A1Z = grandr*mol_eq.atom_mass_list()[0]/(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])
-      A23Z = grandr*(mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])/(2*(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2]))
-      A23Y = petitr/2
-      mol.atom = 'O 0.0 0.0 '+str(A1Z)+' ; H 0.0 -'+str(A23Y)+' '+str(-A23Z)+' ; H 0.0 '+str(A23Y)+' '+str(-A23Z)
-      mol.unit = 'Bohr'
-      mol.chk="CHK/"+str(nr)+"_"+str(npetitr)+".chk"
-	   mol.build()
-		mf = scf.RHF(mol)
-		mf.kernel()
-		ESCF[nr,npetitr] = mf.energy_tot() 
-		npetitr = npetitr +1
-	plt.plot(petitrvec,ESCF[nr,:])
-	plt.show()
-	#plt.close()
-	nr = nr + 1
+        npetitr=0
+        for petitr in petitrvec:
+            A1Z = grandr*mol_eq.atom_mass_list()[0]/(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])
+            A23Z = grandr*(mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2])/(2*(mol_eq.atom_mass_list()[0]+mol_eq.atom_mass_list()[1]+mol_eq.atom_mass_list()[2]))
+            A23Y = petitr/2
+            mol.atom = 'O 0.0 0.0 '+str(A1Z)+' ; H 0.0 -'+str(A23Y)+' '+str(-A23Z)+' ; H 0.0 '+str(A23Y)+' '+str(-A23Z)
+            mol.unit = 'Bohr'
+            if nr == 0 and npetitr == 0:
+               print("first calculation")
+            elif npetitr == 0:
+               import shutil
+               oldchk="CHK/"+str(nr-1)+"_"+str(npetitr)+".chk"
+               shutil.copy2(oldchk,"CHK/"+str(nr)+"_"+str(npetitr)+".chk")
+            else:
+               import shutil
+               oldchk="CHK/"+str(nr)+"_"+str(npetitr-1)+".chk"
+               shutil.copy2(oldchk,"CHK/"+str(nr)+"_"+str(npetitr)+".chk")
+
+
+            mol.build()
+            mf = scf.RHF(mol)
+            mf.chkfile="CHK/"+str(nr)+"_"+str(npetitr)+".chk"
+            if nr == 0 and npetitr == 0:
+               print("first calculation")
+            else:
+               mf.init_guess = 'chkfile'
+            mf.kernel()
+            ESCF[nr,npetitr] = mf.energy_tot()
+            npetitr = npetitr +1
+        #plt.plot(petitrvec,ESCF[nr,:])
+        #plt.show()
+        #plt.close()
+        nr = nr + 1
 
 #        f.write(str(dOz)+" "+str(O[2]+dOz-H1[2])+" "+str(mf.energy_tot())+" "+str(mycc.energy())+'\n')
 #        mc = mcscf.CASCI(mf, 8, 8)
@@ -156,3 +175,4 @@ for grandr in Rvec:
 #plt.show()
 
 numpy.save('SCFPES', ESCF)
+
