@@ -1,0 +1,16 @@
+#! /bin/bash
+# Shell a utiliser pour la tache
+#PBS -A cjt-923-aa
+#PBS -N PYSCF_H2O_PES
+#PBS -l nodes=1:ppn=8 # Nombre de noeuds et nombre de processus par noeud
+#PBS -l walltime=48:00:00    # Duree de la tache
+
+cd ${PBS_O_WORKDIR} # Le script va maintenant etre dans le repertoire ou tu a lancer la tache
+
+export OMP_NUM_THREADS=8
+#module load apps/gaussian/09-c.01
+#g09 opt.gjf
+#g09 freq.gjf
+
+source /home/fradion12/ENV/bin/activate
+python  H2O_PES_MCSCF.py
