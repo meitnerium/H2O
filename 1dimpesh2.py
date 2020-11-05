@@ -102,8 +102,9 @@ for dim1 in dim1vec:
    mf.kernel()
    
    print(mf.mo_energy)
-   MO1=mf.mo_energy[0]
-   MO2=mf.mo_energy[2]
+   print(mf.energy_nuc())
+   MO1[ndim1] = mf.mo_energy[0]+mf.energy_nuc()
+   MO2[ndim1] = mf.mo_energy[1]+mf.energy_nuc()
    
    
    ESCF[ndim1] = mf.energy_tot()
