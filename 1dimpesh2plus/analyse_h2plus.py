@@ -49,7 +49,7 @@ mf = scf.RHF(mol)
 #mf.kernel()
 if config['DEFAULT']['opt']:
         mol_eq = optimize(mf)
-   #mol_eq.chkpoint = "CHK/eq.chk"
+	#mol_eq.chkpoint = "CHK/eq.chk"
         mol_eq.kernel()
         print(mol_eq.atom_mass_list())
         # center of mass of atom 2 and 3
@@ -69,8 +69,6 @@ nval=config['GRID']['nval'].split(',')
 minmax=config['GRID']['minmax'].split(',')
 dim1vec=numpy.linspace(numpy.float(minmax[0]),numpy.float(minmax[1]),numpy.int(nval[0]))
 ESCF=numpy.zeros(numpy.int(nval[0]))
-MO1=numpy.zeros(numpy.int(nval[0]))
-MO2=numpy.zeros(numpy.int(nval[0]))
 
 
 
@@ -78,41 +76,32 @@ MO2=numpy.zeros(numpy.int(nval[0]))
 
 ndim1=0
 for dim1 in dim1vec:
-   A1=[0,0,-dim1/2]
-   A2=[0,0,-dim1/2]
-   mol.atom = atomlist[0]+' '+str(A1[0])+' '+str(A1[2])+' '+str(-dim1/2)+' ; '+\
+	A1=[0,0,-dim1/2]
+	A2=[0,0,-dim1/2]
+	mol.atom = atomlist[0]+' '+str(A1[0])+' '+str(A1[2])+' '+str(-dim1/2)+' ; '+\
         atomlist[1]+' '+str(A1[0])+' '+str(A1[2])+' '+str(dim1/2)
-   newchk="CHK/"+str(ndim1)+".chk"
-   print(mol.atom)
-   if ndim1 == 0:
-      print("first calculation")
-   else:
-      print("not first calculation")
-      #import shutil
-      #oldchk="CHK/"+str(ndim1-1)+".chk"
-      #shutil.copy2(oldchk,newchk)
-   mol.build()
-   mf = scf.RHF(mol)
-   mf.chkfile=newchk
-   if dim1 == 0:
-      print("first calculation")
-   else:
-      mf.init_guess = 'chkfile'
-   
-   mf.kernel()
-   
-   print(mf.mo_energy)
-   MO1=mf.mo_energy[0]
-   MO2=mf.mo_energy[2]
-   
-   
-   ESCF[ndim1] = mf.energy_tot()
-   ndim1 = ndim1 +1
+	newchk="CHK/"+str(ndim1)+".chk"
+	print(mol.atom)
+	if ndim1 == 0:
+		print("first calculation")
+	else:
+		print("not first calculation")
+		#import shutil
+		#oldchk="CHK/"+str(ndim1-1)+".chk"
+		#shutil.copy2(oldchk,newchk)
+	mol.build()
+	mf = scf.RHF(mol)
+	mf.chkfile=newchk
+	if dim1 == 0:
+		print("first calculation")
+	else:
+		mf.init_guess = 'chkfile'
+	mf.kernel()
+	ESCF[ndim1] = mf.energy_tot()
+	ndim1 = ndim1 +1
 
 print(ESCF)
 numpy.save('SCFPES', ESCF)
-numpy.save('MO1', MO1)
-numpy.save('MO2', MO2)
 plt.plot(dim1vec,ESCF)
 minval=numpy.min(ESCF)
 maxval=ESCF[-1]
