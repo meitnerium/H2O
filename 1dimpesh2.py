@@ -95,9 +95,15 @@ for dim1 in dim1vec:
 	if dim1 == 0:
 		print("first calculation")
 	else:
-		mf.init_guess = 'chkfile'
-	mf.kernel()
-	ESCF[ndim1] = mf.energy_tot()
+      mf.init_guess = 'chkfile'
+   
+   mf.kernel()
+   
+   print(mf.mo_energy)
+   
+   exit(0)
+   
+   ESCF[ndim1] = mf.energy_tot()
 	ndim1 = ndim1 +1
 
 print(ESCF)
