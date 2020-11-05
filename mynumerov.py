@@ -20,8 +20,9 @@ def numerovwindows(pot,Emax,Emin,dx,tol):
         else:
             print("E too low")
             Emin=E
-    plt.plot(psi)
-    plt.show()
+
+    print('E final = '+str(E))
+    return E,psi
 
 def numerov(pot,E,dx):
     psi=np.zeros(len(pot))
@@ -43,9 +44,22 @@ def numerov(pot,E,dx):
     return -1,psi
 
 if __name__ == "__main__":
-    numpoints=1024
-    xmin=-5
-    xmax=5
-    x=np.linspace(xmin,xmax,numpoints)
-    pot=x**2
-    numerovwindows(pot, 10, 0, x[1]-x[0],1E-4)
+    #numpoints=1024
+    #xmin=-5
+    #xmax=5
+    #x=np.linspace(xmin,xmax,numpoints)
+    #pot=x**2
+    #numerovwindows(pot, 10, 0, x[1]-x[0],1E-4)
+    import configparser
+    ESCF = np.load('1dimpesh2/SCFPES.npy')
+
+    config = configparser.ConfigParser()
+    config.read('1dimpesh2/config.ini')
+
+    nval = config['GRID']['nval'].split(',')
+    minmax = config['GRID']['minmax'].split(',')
+    dim1vec = np.linspace(np.float(minmax[0]), np.float(minmax[1]), np.int(nval[0]))
+
+    E,psi = numerovwindows(ESCF, 0, -3, dim1vec[1] - dim1vec[0], 1E-10)
+    plt.plot(dim1vec,psi)
+    plt.show()
