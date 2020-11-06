@@ -13,6 +13,7 @@ def numerovwindows(pot,Emax,Emin,dx,tol):
     psi=np.zeros(len(pot))
     while Emax-Emin > tol:
         E=Emin+(Emax-Emin)/2
+        E=-0.8828411336580757
         psi=np.zeros(len(pot))
         psi[0] = 0
         psi[1] = 1E-4
@@ -27,17 +28,18 @@ def numerovwindows(pot,Emax,Emin,dx,tol):
 
         psi[-1]=0
         psi[-2]=1E-4
-        for j in range(len(pot)-3,i-1,-1):
+        for j in range(len(pot)-3,jmin,-1):
             psi[j]=numerovplus(psi[j+2],psi[j+1],pot[j+2],pot[j+1],pot[j],E,dx)
             if psi[j]*psi[j+1] < 0:
                 print("node found")
                 Emax=E
                 break
+        psi[jmin:]=psi[jmin:]/psi[jmin-1]
 
-    plt.plot(psi)
-    plt.savefig('test.png')
-    plt.close()
-    exit(1)
+        plt.plot(psi)
+        plt.savefig('test.png')
+        plt.close()
+        exit(1)
         #test,i,psi = numerov(pot,E,dx)
         #print(test)
         #if test == 1:
