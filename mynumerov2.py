@@ -10,20 +10,57 @@ def numerovplus(psimoin2,psimoin1,potmoins2,potmoins1,pot,E,dx):
     return psi
 
 def numerovwindows(pot,Emax,Emin,dx,tol):
+    psi=np.zeros(len(pot))
     while Emax-Emin > tol:
         E=Emin+(Emax-Emin)/2
-        test,psi = numerov(pot,E,dx)
-        print(test)
-        if test == 1:
-            print("E too big")
-            Emax=E
-        else:
-            print("E too low")
-            Emin=E
+        psi=np.zeros(len(pot))
+        psi[0] = 0
+        psi[1] = 1E-4
+
+        for i in range(len(pot)-2):
+            j=i+2
+            psi[j]=numerovplus(psi[j-2],psi[j-1],pot[j-2],pot[j-1],pot[j],E,dx)
+            der=(psi[j]-psi[j-1])/dx
+            if der < 0:
+                jmin=j
+                break
+
+        psi[-1]=0
+        psi[-2]=1E-4
+        for j in range(len(pot)-3,i-1,-1):
+            psi[j]=numerovplus(psi[j+2],psi[j+1],pot[j+2],pot[j+1],pot[j],E,dx)
+            if psi[j]*psi[j+1] < 0:
+                print("node found")
+                Emax=E
+                break
+
+    plt.plot(psi)
+    plt.savefig('test.png')
+    plt.close()
+    exit(1)
+        #test,i,psi = numerov(pot,E,dx)
+        #print(test)
+        #if test == 1:
+        #    print("E too big")
+        #    Emax=E
+        #if test == 2:
+        #    numerovinv(psi,pot,E,dx,i)
+        #    break
+        #else:
+        #    print("E too low")
+        #    Emin=E
 
     print('E final = '+str(E))
     return E,psi
 
+def numerovinv(psi,pot,E,dx,i):
+    print(i)    
+    psi[-1]=0
+    psi[-2]=1E-4
+    
+    for j in range(len(pot)-3,i-1,-1):
+        psi[j]=numerovplus(psi[j+2],psi[j+1],pot[j+2],pot[j+1],pot[j],E,dx)
+    
 def numerov(pot,E,dx):
     psi=np.zeros(len(pot))
 
@@ -35,13 +72,14 @@ def numerov(pot,E,dx):
         psi[j]=numerovplus(psi[j-2],psi[j-1],pot[j-2],pot[j-1],pot[j],E,dx)
         if psi[j] < 0:
             print("neg function")
-            return 1,psi
+            return 1,i,psi
         der=(psi[j]-psi[j-1])/dx
         if der < 0:
             print("neg derivative")
+            return 2,i,psi
     #plt.plot(psi)
     #plt.show()
-    return -1,psi
+    return -1,i,psi
 
 if __name__ == "__main__":
     exemple='H2'
@@ -70,7 +108,7 @@ if __name__ == "__main__":
 
         E,psi = numerovwindows(ESCF, 0, -3, dim1vec[1] - dim1vec[0], 1E-10)
         plt.plot(dim1vec,psi)
-        np.save('1dimpesh2/h2fund',psi)
+        np.save(psi,'1dimpesh2/h2fund')
         plt.savefig('test.png')
         #plt.show()
     elif exemple == 'H2plus':
