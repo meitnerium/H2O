@@ -9,37 +9,70 @@ def numerovplus(psimoin2,psimoin1,potmoins2,potmoins1,pot,E,dx):
     psi=num/denom
     return psi
 
-def numerovwindows(pot,Emax,Emin,dx,tol):
+def numerovwindows(pot,Emax,Emin,dx,tol,nodetofound):
     psi=np.zeros(len(pot))
     while Emax-Emin > tol:
         E=Emin+(Emax-Emin)/2
-        E=-0.8828411336580757
+        #jmin=3
+        print(E)
         psi=np.zeros(len(pot))
         psi[0] = 0
         psi[1] = 1E-4
 
+        negderfound=False
         for i in range(len(pot)-2):
             j=i+2
             psi[j]=numerovplus(psi[j-2],psi[j-1],pot[j-2],pot[j-1],pot[j],E,dx)
             der=(psi[j]-psi[j-1])/dx
             if der < 0:
                 jmin=j
+                print(jmin)
+                negderfound=True
                 break
 
         psi[-1]=0
+        if nodetofound%2 == 0:
+            psi[-2]=1E-4
+        else:
+            psi[-2]=-1E-4
         psi[-2]=1E-4
-        for j in range(len(pot)-3,jmin,-1):
+        node=0
+        maxfound=False
+        if negderfound:
+          for j in range(len(pot)-3,jmin-1,-1):
             psi[j]=numerovplus(psi[j+2],psi[j+1],pot[j+2],pot[j+1],pot[j],E,dx)
             if psi[j]*psi[j+1] < 0:
                 print("node found")
-                Emax=E
-                break
-        psi[jmin:]=psi[jmin:]/psi[jmin-1]
+                node=node+1
+                if node>nodetofound:
+                    maxfound=True
+                    break
+          print('der1')
+          print(der)
+          print('der2')
+          der2=(psi[jmin+1]-psi[jmin])/dx
+          print((psi[jmin+1]-psi[jmin])/dx)
+          if node < nodetofound:
+            print('Energy too low')
+            Emin=E
+          elif der*der2>0 and maxfound==False:
+            print('Energy too low')
+            Emin=E
+          else:
+            Emax=E
 
-        plt.plot(psi)
-        plt.savefig('test.png')
-        plt.close()
-        exit(1)
+          psi[jmin:]=psi[jmin:]/psi[jmin]*psi[jmin-1]
+          print(psi[jmin-1])
+          print(psi[jmin])
+          print(psi[jmin+1])
+        else:
+          Emin=E
+
+        #plt.plot(psi)
+        #plt.show()
+        #plt.savefig('test.png')
+        #plt.close()
+        #exit(1)
         #test,i,psi = numerov(pot,E,dx)
         #print(test)
         #if test == 1:
@@ -52,6 +85,8 @@ def numerovwindows(pot,Emax,Emin,dx,tol):
         #    print("E too low")
         #    Emin=E
 
+        psi[jmin:]=psi[jmin:]/psi[jmin]*psi[jmin-1]
+    print('nodetobefound = '+str(nodetofound))
     print('E final = '+str(E))
     return E,psi
 
@@ -84,14 +119,14 @@ def numerov(pot,E,dx):
     return -1,i,psi
 
 if __name__ == "__main__":
-    exemple='H2'
+    exemple='test'
     if exemple == 'harm':
         numpoints=1024
         xmin=-5
         xmax=5
         x=np.linspace(xmin,xmax,numpoints)
         pot=0.5*x**2
-        E,psi = numerovwindows(pot, 10, 0, x[1]-x[0],1E-10)
+        E,psi = numerovwindows(pot, 10, 0, x[1]-x[0],1E-10,0)
         plt.plot(x,psi)
         plt.savefig('test.png')
         #plt.show()
@@ -108,14 +143,14 @@ if __name__ == "__main__":
         minmax = config['GRID']['minmax'].split(',')
         dim1vec = np.linspace(np.float(minmax[0]), np.float(minmax[1]), np.int(nval[0]))
 
-        E,psi = numerovwindows(ESCF, 0, -3, dim1vec[1] - dim1vec[0], 1E-10)
+        E,psi = numerovwindows(ESCF, 0, -3, dim1vec[1] - dim1vec[0], 1E-10,0)
         plt.plot(dim1vec,psi)
-        np.save(psi,'1dimpesh2/h2fund')
+        np.save('1dimpesh2/h2fund',psi)
         plt.savefig('test.png')
         #plt.show()
     elif exemple == 'H2plus':
-
         # H2+
+        maxv=12
         import configparser
         ESCF = np.load('1dimpesh2plus/SCFPES.npy')
 
@@ -125,8 +160,32 @@ if __name__ == "__main__":
         nval = config['GRID']['nval'].split(',')
         minmax = config['GRID']['minmax'].split(',')
         dim1vec = np.linspace(np.float(minmax[0]), np.float(minmax[1]), np.int(nval[0]))
-
-        E,psi = numerovwindows(ESCF, 0, -3, dim1vec[1] - dim1vec[0], 1E-10)
-        plt.plot(dim1vec,psi)
+        allpsi=[]
+        v=0
+        while v <= maxv: 
+            E,psi = numerovwindows(ESCF, 0, -3, dim1vec[1] - dim1vec[0], 1E-10,v)
+            plt.plot(dim1vec,psi)
+            plt.show()
+            v=v+1
         plt.savefig('test.png')
         #plt.show()
+    elif exemple == 'test':
+        import configparser
+        ESCF = np.load('1dimpesh2plus/SCFPES.npy')
+
+        config = configparser.ConfigParser()
+        config.read('1dimpesh2plus/config.ini')
+
+        nval = config['GRID']['nval'].split(',')
+        minmax = config['GRID']['minmax'].split(',')
+        dim1vec = np.linspace(np.float(minmax[0]), np.float(minmax[1]), np.int(nval[0]))
+        allpsi=[]
+        v=10
+        Emin=-8.931149137020111e-3
+        Emax=0.1
+        E,psi = numerovwindows(ESCF, Emax, Emin, dim1vec[1] - dim1vec[0], 1E-10,v)
+        plt.plot(dim1vec,psi)
+        plt.show()
+        plt.savefig('test.png')
+        #plt.show()
+
