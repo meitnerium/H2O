@@ -119,7 +119,7 @@ def numerov(pot,E,dx):
     return -1,i,psi
 
 if __name__ == "__main__":
-    exemple='H2plus'
+    exemple='test'
     if exemple == 'harm':
         numpoints=1024
         xmin=-5
